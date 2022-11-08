@@ -1,6 +1,6 @@
 #Subscale Servo test
 #Written by Oori Schubert
-#WLanguage: micropython
+#Language: micropython
 #Makes servo rotate between 0 and 180 degrees
 
 
