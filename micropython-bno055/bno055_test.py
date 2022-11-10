@@ -23,7 +23,7 @@ i2c = machine.I2C(0, sda=machine.Pin(16), scl=machine.Pin(17))  # EIO error almo
 imu = BNO055(i2c)
 calibrated = False
 while True:
-    time.sleep(1)
+    time.sleep(0.1)
     if not calibrated:
         calibrated = imu.calibrated()
         print('Calibration required: sys {} gyro {} accel {} mag {}'.format(*imu.cal_status()))
