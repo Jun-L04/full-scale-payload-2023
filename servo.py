@@ -1,20 +1,42 @@
-#Subscale Servo test
+#Subscale Servo calibration
 #Written by Oori Schubert
-#Language: micropython
-#Makes servo rotate between 0 and 180 degrees
+#Written in micropython
+#Sets BNO055 to 0 degrees using servo
 
 
-from machine import Pin,PWM
+from machine import Pin,PWM,I2C
 from time import sleep
+from bno055 import *
 
-pwm = PWM(Pin(17))
+pwm = PWM(Pin(15))
 pwm.freq(50)
 
-#position 1000 = 0 degrees and position 9000 = 180 degrees
-while True:
-    for position in range(1000,9000,50): #0 to 180
-        pwm.duty_u16(position)
-        sleep(0.01)
-    for position in range(9000,1000,-50): #180 to 0
-        pwm.duty_u16(position)
-        sleep(0.01)
+i2c = I2C(0, sda=Pin(16), scl=Pin(17)) #
+imu = BNO055(i2c)
+
+#set servo to 0 degrees based on x axis
+def setServo() -> float: #is it a float or int?
+    calibrated = False
+    pwm.duty_u16(1000) #set servo to 0
+    while True:
+        if imu.calibrated():
+            calibrated = True
+            break
+        elif not calibrated:
+                calibrated = imu.calibrated()
+                print('Calibration required: sys {} gyro {} accel {} mag {}'.format(*imu.cal_status()))
+                sleep(1)
+    #read x axis
+    x = imu.gyro()[0]
+    print(x)
+
+    #convert to duty cycle
+    duty = int((x/180)*65535) #not correct?: need to convert to 0-180 degrees
+    print(duty)
+
+    #set servo to x degrees
+    pwm.duty_u16(-duty) #need to set to negative in order to get true zero
+    sleep(0.1)
+    return imu.gyro()[0] #returns new x axis for verification
+
+setServo()
