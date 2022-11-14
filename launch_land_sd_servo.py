@@ -46,6 +46,7 @@ def do_every(func_arr, interval_arr):
                     prevTimes[i] = time.ticks_ms()
                 except StopIteration:#Leave the while loop
                     return
+check_override_interval = 15000#Check for override every 15 seconds
 def check_time_land_override():
     if time.ticks_diff(time.ticks_ms(), init_time) > 3600000:#If time is greater than 1 hr (in ms), then skip to landing
         raise ForceLandingException
@@ -94,6 +95,14 @@ imu_data_interval = 1/imu_data_frequency*1000 #ms
 #Declaring queues. They must be accessible via the global context
 time_queue = None
 accel_queue = None
+
+#Decarling landing override. Must be accesible via global context
+landing_override = False
+def check_override():#If payload goes for 1 hr, then override launch/landing detection straight to landed phase
+    if time.ticks_diff(time.ticks_ms(), init_time)>3_600_000:#Longer than 1 hour
+        global landing_override
+        landing_override = True
+        raise StopIteration
 #Inputs: Interval: How much acceleration data should be kept track of (eg last 2000 ms, interval = 2000)
 #						NOTE: This does not mean acceleration is updated every interval ms
 #Output: A function that can be passed into do_every to update the time and acceleration queues
@@ -149,7 +158,8 @@ def find_reference_gravity():#CHECK HERE FOR SOMEWHAT ARBITRARY VALUES
         flight_log.write("\nCalculated Gravity: " + str(stats))
         GRAVITY = stats[0]*1.25 #ARBITRARY: Multiply by 1.1 to give some room for error
         raise StopIteration
-do_every([data_updater, find_reference_gravity], [accel_sample_interval, check_interval])
+if not landing_override:
+    do_every([data_updater, find_reference_gravity, check_override], [accel_sample_interval, check_interval, check_override_interval])
 #GRAVITY is set at this point
 flight_log.write("\nGravity has been set: " + str(GRAVITY))
 flight_log.write("\nTime (ms): " + str(time_queue.peek()))
@@ -175,7 +185,10 @@ data_updater = make_data_updater(burn_time)#Function to update accelerations, ke
 
 
 check_launch_interval = 1000 #ARBITRARY: check for launch every check_launch_interval ms
-#------------do_every([write_to_imu_data, data_updater, check_launch], [imu_data_interval, accel_sample_interval, check_launch_interval])
+'''COMMENTED OUT FOR TESTING PURPOSE ONLY
+if not landing_override
+    do_every([write_to_imu_data, data_updater, check_launch, check_override], [imu_data_interval, accel_sample_interval, check_launch_interval, check_override_interval])
+'''
 #The rocket has launched at this point
 flight_log.write("\nThe rocket has launched")
 flight_log.write("\nTime (ms): " + str(time_queue.peek()))
@@ -198,7 +211,8 @@ def check_landing():
             raise StopIteration
 data_updater = make_data_updater(check_interval)
 check_landing_interval = 3000#ARBITRARY: Check for landing every 3 seconds
-do_every([write_to_imu_data, data_updater, check_landing], [imu_data_interval, accel_sample_interval, check_landing_interval])
+if not landing_override:
+    do_every([write_to_imu_data, data_updater, check_landing, check_override], [imu_data_interval, accel_sample_interval, check_landing_interval, check_override_interval])
 flight_log.write("\nThe rocket has landed")
 flight_log.write("\nTime (ms): " + str(time_queue.peek()))
 #-----LANDED PHASE-----
