@@ -129,7 +129,7 @@ def make_data_updater(interval):
 
 #-----CALIBRATION PHASE-----
 def calibration_fn():
-    flight_log.write('\nCalibration required: sys {} gyro {} accel {} mag {}'.format(*imu.cal_status()))
+    uart.write('\nCalibration required: sys {} gyro {} accel {} mag {}'.format(*imu.cal_status()))
     if imu.calibrated():
         flight_log.write("\nCALIBRATED!");
         #bytearray(b'\xfa\xff\x00\x00\xe9\xffF\x04\x13\x01|\xff\xff\xff\x00\x00\x00\x00\xe8\x03\xec\x01')
