@@ -89,9 +89,19 @@ sd = sdcard.SDCard(spi, cs)
 vfs = uos.VfsFat(sd)
 uos.mount(vfs, "/sd")
 
-imu_data = open("/sd/imu_data.csv" , "w")#Need to close this at the end of the program
+#Find a file name so nothing is overridden
+def get_valid_file_name(path, ext):
+    try:
+        os.stat(path + "." + ext)
+        #If os.stat doesn't have error, then the file exists, use a different name
+        return get_valid_file_name(path + "1", ext)#Try same name with a "1" appended to it
+    except OSError:
+        #file does not exist, use this file name
+        return path + "." + ext
+
+imu_data = open(get_valid_file_name("/sd/imu_data", "csv") , "w")#Need to close this at the end of the program
 imu_data.write("Time, Temperature, Mag X, Mag Y, Mag Z, Gyro X, Gyro Y, Gyro Z, Acc X, Acc Y, Acc Z, Lin Acc X, Lin Acc Y, Lin Acc Z, Gravity X, Gravity Y, Gravity Z, Euler X, Euler Y, Euler Z\n")
-flight_log = open("/sd/flight_log.txt", "w")
+flight_log = open(get_valid_file_name("/sd/flight_log", "txt"), "w")
 imu_data.write(str(time.ticks_diff(time.ticks_ms(), init_time)/1000.0) + "," + str(imu.temperature()) + "," + '{:5.3f},{:5.3f},{:5.3f},'.format(*imu.mag()) + '{:5.3f},{:5.3f},{:5.3f},'.format(*imu.gyro()) + '{:5.3f},{:5.3f},{:5.3f},'.format(*imu.accel()) + '{:5.3f},{:5.3f},{:5.3f},'.format(*imu.lin_acc()) + '{:5.3f},{:5.3f},{:5.3f},'.format(*imu.gravity()) + '{:4.3f},{:4.3f},{:4.3f}'.format(*imu.euler()) + "\n")
 
 
