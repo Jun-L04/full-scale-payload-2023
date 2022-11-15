@@ -1,11 +1,24 @@
 import machine
+import uos
 import time
 from bno055 import *
 from queue import *#do Queue(max_size, threshold) to make object
 from math import floor
 import sdcard
-import uos
 from sys import exit#only for testing
+gc.collect()
+
+from machine import UART
+
+baud_rates = [110,300,600,1200,2400,4800,9600,14400,19200,38400,57600,115200,128000,256000]
+baud_rate_selection = 6 #To change baud rate
+
+uart = UART(0, baud_rates[baud_rate_selection]) # setup uart object (uart0 maps to pin 1 on the pico)
+uart.init(9600, parity=None, stop=1) # initialize the serial connection with given parameters
+time.sleep(0.5)
+uart.write('Initial Transmission - Rocket was connected to power')
+
+#To add transmissions, use uart.write(string)
 
 class ForceLandingException(Exception):
     pass
