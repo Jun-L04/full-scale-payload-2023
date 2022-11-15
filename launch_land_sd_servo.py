@@ -2,18 +2,16 @@ import machine
 import uos
 import time
 from bno055 import *
+from bno055_base import BNO055_BASE
 from queue import *#do Queue(max_size, threshold) to make object
 from math import floor
 import sdcard
 from sys import exit#only for testing
+
 gc.collect()
 
-from machine import UART
 
-baud_rates = [110,300,600,1200,2400,4800,9600,14400,19200,38400,57600,115200,128000,256000]
-baud_rate_selection = 6 #To change baud rate
-
-uart = UART(0, baud_rates[baud_rate_selection]) # setup uart object (uart0 maps to pin 1 on the pico)
+uart = machine.UART(0, 9600) # setup uart object (uart0 maps to pin 1 on the pico)
 uart.init(9600, parity=None, stop=1) # initialize the serial connection with given parameters
 time.sleep(0.5)
 uart.write('Initial Transmission - Rocket was connected to power')
@@ -24,7 +22,6 @@ uart.write('Initial Transmission - Rocket was connected to power')
 
 class ForceLandingException(Exception):
     pass
-from bno055_base import BNO055_BASE
 init_time = time.ticks_ms()
 def mean(arr, length):
     sum = 0
@@ -134,7 +131,7 @@ def make_data_updater(interval):
 
 #-----CALIBRATION PHASE-----
 def calibration_fn():
-    flight_log.write('\nCalibration required: sys {} gyro {} accel {} mag {}'.format(*imu.cal_status()))
+    uart.write('\nCalibration required: sys {} gyro {} accel {} mag {}'.format(*imu.cal_status()))
     if imu.calibrated():
         flight_log.write("\nCALIBRATED!");
         #bytearray(b'\xfa\xff\x00\x00\xe9\xffF\x04\x13\x01|\xff\xff\xff\x00\x00\x00\x00\xe8\x03\xec\x01')
@@ -149,7 +146,7 @@ imu.set_offsets(offset_arr)
 
 flight_log.write("\nIMU is calibrated")
 flight_log.write("\nTime (ms): " + str(time.ticks_ms()))
-
+uart.write("IMU is calibrated")
 
 #-----SETUP PHASE-----
 GRAVITY = 9.8
@@ -178,7 +175,7 @@ if not landing_override:
 #GRAVITY is set at this point
 flight_log.write("\nGravity has been set: " + str(GRAVITY))
 flight_log.write("\nTime (ms): " + str(time_queue.peek()))
-print("Gravity")
+uart.write("Gravity has been calculated. Ready for flight.")
 #-----BEFORE FLIGHT PHASE-----
 #Reset time and acceleration queues
 queue_frequency = 50 #Hz
@@ -207,7 +204,7 @@ if not landing_override
 #The rocket has launched at this point
 flight_log.write("\nThe rocket has launched")
 flight_log.write("\nTime (ms): " + str(time_queue.peek()))
-
+uart.write("Launch Detected")
 #-----IN FLIGHT PHASE-----
 #Reset time and acceleration queues
 queue_frequency = 25 #Hz
@@ -230,6 +227,7 @@ if not landing_override:
     do_every([write_to_imu_data, data_updater, check_landing, check_override], [imu_data_interval, accel_sample_interval, check_landing_interval, check_override_interval])
 flight_log.write("\nThe rocket has landed")
 flight_log.write("\nTime (ms): " + str(time_queue.peek()))
+uart.write("Landing Detected")
 #-----LANDED PHASE-----
 
 #DO STUFF AFTER LANDING HERE
@@ -286,5 +284,7 @@ print("Done")
 servo.duty_ns(servoStop) #Servo is turned off initially
 imu_data.close()
 flight_log.close()
+uart.write("Program terminated")
+
 
 
