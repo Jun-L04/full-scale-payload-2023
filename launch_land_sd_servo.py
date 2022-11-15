@@ -11,7 +11,7 @@ from sys import exit#only for testing
 gc.collect()
 
 
-uart = machine.UART(0, baud_rates[9600]) # setup uart object (uart0 maps to pin 1 on the pico)
+uart = machine.UART(0, 9600) # setup uart object (uart0 maps to pin 1 on the pico)
 uart.init(9600, parity=None, stop=1) # initialize the serial connection with given parameters
 time.sleep(0.5)
 uart.write('Initial Transmission - Rocket was connected to power')
@@ -282,5 +282,7 @@ print("Done")
 servo.duty_ns(servoStop) #Servo is turned off initially
 imu_data.close()
 flight_log.close()
+uart.write("Program terminated")
+
 
 
