@@ -8,7 +8,7 @@ from math import floor
 import sdcard
 from sys import exit#only for testing
 
-gc.collect()
+
 
 
 uart = machine.UART(0, 9600) # setup uart object (uart0 maps to pin 1 on the pico)
@@ -65,7 +65,7 @@ def check_time_land_override():
 # Pico: hard I2C doesn't work without this patch
 # https://github.com/micropython/micropython/issues/8167#issuecomment-1013696765
 
-i2c = machine.I2C(0, sda=machine.Pin(16), scl=machine.Pin(17))  # EIO error almost immediately
+i2c = machine.I2C(1, sda=machine.Pin(16), scl=machine.Pin(17))  # EIO error almost immediately
 #init imu
 imu = BNO055(i2c)
 
@@ -171,7 +171,8 @@ def find_reference_gravity():#CHECK HERE FOR SOMEWHAT ARBITRARY VALUES
         GRAVITY = stats[0]*1.25 #ARBITRARY: Multiply by 1.1 to give some room for error
         raise StopIteration
 if not landing_override:
-    do_every([data_updater, find_reference_gravity, check_override], [accel_sample_interval, check_interval, check_override_interval])
+    pass
+    #do_every([data_updater, find_reference_gravity, check_override], [accel_sample_interval, check_interval, check_override_interval])
 #GRAVITY is set at this point
 flight_log.write("\nGravity has been set: " + str(GRAVITY))
 flight_log.write("\nTime (ms): " + str(time_queue.peek()))
@@ -224,7 +225,8 @@ def check_landing():
 data_updater = make_data_updater(check_interval)
 check_landing_interval = 3000#ARBITRARY: Check for landing every 3 seconds
 if not landing_override:
-    do_every([write_to_imu_data, data_updater, check_landing, check_override], [imu_data_interval, accel_sample_interval, check_landing_interval, check_override_interval])
+    pass
+    #do_every([write_to_imu_data, data_updater, check_landing, check_override], [imu_data_interval, accel_sample_interval, check_landing_interval, check_override_interval])
 flight_log.write("\nThe rocket has landed")
 flight_log.write("\nTime (ms): " + str(time_queue.peek()))
 uart.write("Landing Detected")
