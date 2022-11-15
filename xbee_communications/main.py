@@ -2,14 +2,14 @@
 #Written by Anton Voronov (ravenspired) for the UMass Rocket Team
 #Demonstration code for subscale rocket flight (Testing the successful transmission of data during flight of the rocket.
 #Sends a transmission including made up accelerometer data and a timestamp of seconds since launch.
-#Currently tested on an Adafruit Feather Huzzah (4MB Flash) running Micropython 1.19.1, connected to a sparkfun XBee Pro 538 Breakout Board.
+#Currently tested on an Raspberry Pi Pico running Micropython 1.19.1, connected to a sparkfun XBee Pro 538 Breakout Board.
 #This script sends a transmission every second with the amount of seconds since program was run and with made up accelerometer data.
 
 #WIRING DIAGRAM:
-#Feather Board => XBee Pro 538
+#Raspberry Pi Pico => XBee Pro 538
 #3V => 3.3V
 #GND => GND
-#2 => DIN
+#1 => DIN
 
 
 import uos, machine
@@ -25,7 +25,7 @@ baud_rate_selection = 6 #To change baud rate
 
 from machine import UART
  
-uart = UART(1, baud_rates[baud_rate_selection]) # setup uart object
+uart = UART(0, baud_rates[baud_rate_selection]) # setup uart object (uart0 maps to pin 1 on the pico)
 uart.init(9600, parity=None, stop=1) # initialize the serial connection with given parameters
 time.sleep(0.5)
 uart.write('Initial Transmission - Rocket was connected to power') # How to send the message
@@ -46,6 +46,7 @@ def get_time_stamp(): # returns the amount of seconds since program started to r
     return str(time.time() - start_time)
 
 while True:
+    print("transmitting")
     transmit_data(invent_accel_data()) 
     time.sleep(0.9)
 
