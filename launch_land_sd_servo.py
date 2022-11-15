@@ -18,6 +18,8 @@ uart.init(9600, parity=None, stop=1) # initialize the serial connection with giv
 time.sleep(0.5)
 uart.write('Initial Transmission - Rocket was connected to power')
 
+
+#IF YOU ARE IMPLEMENTING DATA TRANSMISSIONS, READ THE BELOW TEXT:
 #To add transmissions, use uart.write(string)
 
 class ForceLandingException(Exception):
