@@ -206,7 +206,9 @@ def calibration_fn():
 
 
 # Check for calibration every 1000 ms
+
 ######------do_every([calibration_fn], [1000])
+
 # The IMU is calibrated at this point
 # The reference gravity must be calculated in setup for the rest of the program to use
 # For stopping the executition of program during testing
@@ -264,14 +266,14 @@ uart.write("\nTime (ms): " + str(time_queue.peek()))
 
 # Reset time and acceleration queues
 queue_frequency = 50  # Hz
-burn_time = 2970 * 0.75  # Multiply by .75 for some room for error
+burn_time = 2970 * 0.85  # Multiply by .85 for some room for error
 accel_sample_interval = (
     1000 / queue_frequency
 )  # calculate time between samples in ms based on desired frequency
 max_size = calculate_max_size(queue_frequency, burn_time)
 
 time_queue = Queue(max_size, None)
-accel_queue = Queue(max_size, GRAVITY*1.25)
+accel_queue = Queue(max_size, GRAVITY)
 
 
 def check_launch():
@@ -359,9 +361,9 @@ servo.freq(50)  # Set PWM frequency
 # define stop,CCW and CW timing in ns
 
 # Our servo has a max ns of 2000000, min ns 1000000, and stops at ns 1500000
-servoStop = 1500000
-servoCCW = 1450000
-servoCW = 1550000
+servoStop = 1_500_000
+servoCCW = 1_450_000
+servoCW = 1_550_000
 
 def is_not_vertical():  # Checks if rocket is level since servo freaks out otherwise
     return -10 < imu.euler()[1] < 10
