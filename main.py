@@ -81,16 +81,6 @@ def do_every(func_arr, interval_arr):
                 except StopIteration:  # Leave the while loop
                     return
 
-
-check_override_interval = 15000  # Check for override every 15 seconds
-
-# If time is greater than 1 hr (in ms), then skip to landing
-def check_time_land_override():
-    if time.ticks_diff(time.ticks_ms(), init_time) > 3600000:
-        uart.write("Timed out waiting for a landing. Assuming landed.")
-        raise ForceLandingException
-
-
 # Initialize IMU
 uart.write("\nInitializing IMU\n")
 i2c = machine.I2C(0, sda=machine.Pin(16), scl=machine.Pin(17))
@@ -270,10 +260,7 @@ def find_reference_gravity():  # CHECK HERE FOR SOMEWHAT ARBITRARY VALUES
         )  # ARBITRARY: Multiply by 1.1 to give some room for error
         raise StopIteration
 
-
-if not landing_override:
-    pass
-    # do_every([data_updater, find_reference_gravity, check_override], [accel_sample_interval, check_interval, check_override_interval])
+do_every([data_updater, find_reference_gravity], [accel_sample_interval, check_interval])
 # GRAVITY is set at this point
 flight_log.write("\nGravity has been set: " + str(GRAVITY))
 flight_log.write("\nTime (ms): " + str(time_queue.peek()))
@@ -320,8 +307,8 @@ check_launch_interval = (
 )
 
 
-if not landing_override:
-    do_every([write_to_imu_data, data_updater, check_launch, check_override], [imu_data_interval, accel_sample_interval, check_launch_interval, check_override_interval])
+
+do_every([write_to_imu_data, data_updater, check_launch], [imu_data_interval, accel_sample_interval, check_launch_interval])
 
 
 # The rocket has launched at this point
@@ -362,9 +349,7 @@ def check_landing():
 
 data_updater = make_data_updater(check_interval)
 check_landing_interval = 3000  # ARBITRARY: Check for landing every 3 seconds
-if not landing_override:
-    
-    do_every([write_to_imu_data, data_updater, check_landing, check_override], [imu_data_interval, accel_sample_interval, check_landing_interval, check_override_interval])
+do_every([write_to_imu_data, data_updater, check_landing], [imu_data_interval, accel_sample_interval, check_landing_interval])
 flight_log.write("\nThe rocket has landed")
 flight_log.write("\nTime (ms): " + str(time_queue.peek()))
 uart.write("\n\nLanding Detected")
@@ -386,29 +371,8 @@ servoStop = 1500000
 servoCCW = 1450000
 servoCW = 1550000
 
-calibrated = False
-
-
-def is_not_accelerating():  # Checks if the rocket is accelerating (if it is falling or flying through the sky)
-    if 9 < imu.accel()[2] < 10:
-        # print("we are good in acceleration")
-
-        return True
-    else:
-        # print("we are not good in acceleration")
-        return False
-
-
 def is_not_vertical():  # Checks if rocket is level since servo freaks out otherwise
-    if -10 < imu.euler()[1] < 10:
-        # print("we are good in vertical axis")
-
-        return True
-    else:
-        # print("we are not good in vertical axis")
-
-        return False
-
+    return -10 < imu.euler()[1] < 10
 
 init_adjust_time = time.ticks_ms()
 
