@@ -171,15 +171,6 @@ imu_data_interval = 1 / imu_data_frequency * 1000  # ms
 time_queue = None
 accel_queue = None
 
-# Decarling landing override. Must be accesible via global context
-landing_override = False
-
-
-def check_override():  # If payload goes for 1 hr, then override launch/landing detection straight to landed phase
-    if time.ticks_diff(time.ticks_ms(), init_time) > 3_600_000:  # Longer than 1 hour
-        global landing_override
-        landing_override = True
-        raise StopIteration
 
 
 # Inputs: Interval: How much acceleration data should be kept track of (eg last 2000 ms, interval = 2000)
@@ -280,7 +271,7 @@ accel_sample_interval = (
 max_size = calculate_max_size(queue_frequency, burn_time)
 
 time_queue = Queue(max_size, None)
-accel_queue = Queue(max_size, GRAVITY)
+accel_queue = Queue(max_size, GRAVITY*1.25)
 
 
 def check_launch():
@@ -290,9 +281,10 @@ def check_launch():
     if (
         accel_queue.get_proportion_above_threshold() > 0.95#0.95
     ):  # ARBITRARY: If 95% of the data is above the gravity threshold, then check variance
-        uart.write("\n Variance of Threshold:"+str(mean_variance(accel_queue)[1]))
+        mean-variance-calc = mean_variance(accel_queue)
+        uart.write("\n Variance of Threshold:"+str(mean-variance-calc[1]))
         if (
-            mean_variance(accel_queue)[1] > 5
+            mean-variance-calc[1] > 5
         ):  # ARBITRARY: If the variance is above 0.5 m/s^2, then launch is detected
             raise StopIteration
 
