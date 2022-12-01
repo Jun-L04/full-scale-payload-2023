@@ -6,7 +6,7 @@ from bno055_base import BNO055_BASE
 from queue import *  # do Queue(max_size, threshold) to make object
 from math import floor
 import sdcard
-from sys import exit  # only for testing
+# from sys import exit  # only for testing
 
 """
 SUBSCALE PAYLOAD CONTROL Version 1.0-alpha
@@ -26,7 +26,6 @@ uart.write("Initial Transmission\n\n")
 uart.write("\nRocket was connected to power\n")
 uart.write("\nWaiting 3 seconds\n")
 time.sleep(3)
-
 
 
 # IF YOU ARE IMPLEMENTING DATA TRANSMISSIONS, READ THE BELOW TEXT:
@@ -81,6 +80,7 @@ def do_every(func_arr, interval_arr):
                 except StopIteration:  # Leave the while loop
                     return
 
+
 # Initialize IMU
 uart.write("\nInitializing IMU\n")
 i2c = machine.I2C(0, sda=machine.Pin(16), scl=machine.Pin(17))
@@ -111,6 +111,8 @@ vfs = uos.VfsFat(sd)
 uos.mount(vfs, "/sd")
 
 # Find a file name so nothing is overridden
+
+
 def get_valid_file_name(path, ext):
     try:
         # If uos.stat doesn't have error, then the file exists, use a different name
@@ -120,6 +122,8 @@ def get_valid_file_name(path, ext):
     except OSError:
         # file does not exist, use this file name
         return path + "." + ext
+
+
 uart.write("\n SD Card initialized.\n")
 
 
@@ -129,19 +133,6 @@ imu_data.write(
     "Time, Temperature, Mag X, Mag Y, Mag Z, Gyro X, Gyro Y, Gyro Z, Acc X, Acc Y, Acc Z, Lin Acc X, Lin Acc Y, Lin Acc Z, Gravity X, Gravity Y, Gravity Z, Euler X, Euler Y, Euler Z\n"
 )
 flight_log = open(get_valid_file_name("/sd/flight_log", "txt"), "w")
-imu_data.write(
-    str(time.ticks_diff(time.ticks_ms(), init_time) / 1000.0)
-    + ","
-    + str(imu.temperature())
-    + ","
-    + "{:5.3f},{:5.3f},{:5.3f},".format(*imu.mag())
-    + "{:5.3f},{:5.3f},{:5.3f},".format(*imu.gyro())
-    + "{:5.3f},{:5.3f},{:5.3f},".format(*imu.accel())
-    + "{:5.3f},{:5.3f},{:5.3f},".format(*imu.lin_acc())
-    + "{:5.3f},{:5.3f},{:5.3f},".format(*imu.gravity())
-    + "{:4.3f},{:4.3f},{:4.3f}".format(*imu.euler())
-    + "\n"
-)
 
 
 def write_to_imu_data():
@@ -172,7 +163,6 @@ time_queue = None
 accel_queue = None
 
 
-
 # Inputs: Interval: How much acceleration data should be kept track of (eg last 2000 ms, interval = 2000)
 # 						NOTE: This does not mean acceleration is updated every interval ms
 # Output: A function that can be passed into do_every to update the time and acceleration queues
@@ -181,23 +171,16 @@ def make_data_updater(interval):
         cur_time = time.ticks_ms()
         time_queue.enqueue(cur_time)
         accel_data = imu.accel()
-        accel_queue.enqueue(
-            (accel_data[0] ** 2 + accel_data[1] ** 2 + accel_data[2] ** 2) ** 0.5
-        )
+        accel_queue.enqueue((accel_data[0] ** 2 + accel_data[1]** 2 + accel_data[2] ** 2) ** 0.5)
         while time.ticks_diff(cur_time, time_queue.peek()) > interval:
             time_queue.dequeue()
             accel_queue.dequeue()
-
     return updater
 
 
 # -----CALIBRATION PHASE-----
 def calibration_fn():
-    uart.write(
-        "Calibration required: sys {} gyro {} accel {} mag {}".format(
-            *imu.cal_status()
-        )
-    )
+    uart.write("Calibration required: sys {} gyro {} accel {} mag {}".format(*imu.cal_status()))
     if imu.calibrated():
         uart.write("\n\nCalibration Done!")
         flight_log.write("\nCALIBRATED!")
@@ -207,15 +190,13 @@ def calibration_fn():
 
 # Check for calibration every 1000 ms
 
-######------do_every([calibration_fn], [1000])
+do_every([calibration_fn], [1000])
 
 # The IMU is calibrated at this point
 # The reference gravity must be calculated in setup for the rest of the program to use
 # For stopping the executition of program during testing
-offset_arr = bytearray(
-    b"\xfa\xff\x00\x00\xe9\xffF\x04\x13\x01|\xff\xff\xff\x00\x00\x00\x00\xe8\x03\xec\x01"
-)
-imu.set_offsets(offset_arr)
+#offset_arr = bytearray(b"\xfa\xff\x00\x00\xe9\xffF\x04\x13\x01|\xff\xff\xff\x00\x00\x00\x00\xe8\x03\xec\x01")
+#imu.set_offsets(offset_arr)
 
 flight_log.write("\nIMU is calibrated")
 flight_log.write("\nTime (ms): " + str(time.ticks_ms()))
@@ -241,19 +222,18 @@ def find_reference_gravity():  # CHECK HERE FOR SOMEWHAT ARBITRARY VALUES
     if time.ticks_diff(time.ticks_ms(), time_queue.peek()) < check_interval * 0.5:
         return
     stats = mean_variance(accel_queue)
-    if (
-        stats[1] < 0.1 and stats[0] > 9.5 and stats[0] < 10.1
-    ):  # ARBITRARY: if variance less than .1 m/s^2, also check that mean is reasonable (g+-.3)
+    if (stats[1] < 0.1 and stats[0] > 9.5 and stats[0] < 10.1):  
+        # ARBITRARY: if variance less than .1 m/s^2, also check that mean is reasonable (g+-.3)
         # May also want to check that queue has big enough number of elements
         # Set reference gravity
         flight_log.write("\nCalculated Gravity: " + str(stats))
         uart.write("\nCalculated Gravity: " + str(stats))
-        GRAVITY = (
-            stats[0] * 1.25
-        )  # ARBITRARY: Multiply by 1.1 to give some room for error
+        GRAVITY = stats[0] * 1.25 
+        # ARBITRARY: Multiply by 1.1 to give some room for error
         raise StopIteration
 
-do_every([data_updater, find_reference_gravity], [accel_sample_interval, check_interval])
+
+do_every([data_updater, find_reference_gravity],[accel_sample_interval, check_interval])
 # GRAVITY is set at this point
 flight_log.write("\nGravity has been set: " + str(GRAVITY))
 flight_log.write("\nTime (ms): " + str(time_queue.peek()))
@@ -267,9 +247,8 @@ uart.write("\nTime (ms): " + str(time_queue.peek()))
 # Reset time and acceleration queues
 queue_frequency = 50  # Hz
 burn_time = 2970 * 0.85  # Multiply by .85 for some room for error
-accel_sample_interval = (
-    1000 / queue_frequency
-)  # calculate time between samples in ms based on desired frequency
+accel_sample_interval = 1000 / queue_frequency
+# calculate time between samples in ms based on desired frequency
 max_size = calculate_max_size(queue_frequency, burn_time)
 
 time_queue = Queue(max_size, None)
@@ -279,27 +258,21 @@ accel_queue = Queue(max_size, GRAVITY)
 def check_launch():
     if time.ticks_diff(time.ticks_ms(), time_queue.peek()) < 0.5 * burn_time:
         return  # Dont check for launch if there's not enough data in the queue yet
-    uart.write("\n Launch Threshold Proportion: "+str(accel_queue.get_proportion_above_threshold()))
-    if (
-        accel_queue.get_proportion_above_threshold() > 0.95#0.95
-    ):  # ARBITRARY: If 95% of the data is above the gravity threshold, then check variance
-        mean-variance-calc = mean_variance(accel_queue)
-        uart.write("\n Variance of Threshold:"+str(mean-variance-calc[1]))
-        if (
-            mean-variance-calc[1] > 5
-        ):  # ARBITRARY: If the variance is above 0.5 m/s^2, then launch is detected
+    uart.write("\n Launch Threshold Proportion: " + str(accel_queue.get_proportion_above_threshold()))
+    if accel_queue.get_proportion_above_threshold() > 0.95:
+        # ARBITRARY: If 95% of the data is above the gravity threshold, then check variance
+        mean_variance_calc = mean_variance(accel_queue)
+        uart.write("\n Variance of Threshold:"+str(mean_variance_calc[1]))
+        if mean_variance_calc[1] > 5:  # ARBITRARY: If the variance is above 0.5 m/s^2, then launch is detected
             raise StopIteration
 
 
-data_updater = make_data_updater(
-    burn_time
-)  # Function to update accelerations, keeping only last burn_time ms in the queue
+data_updater = make_data_updater(burn_time)
+# Function to update accelerations, keeping only last burn_time ms in the queue
 
 
-check_launch_interval = (
-    1000  # ARBITRARY: check for launch every check_launch_interval ms
-)
-
+check_launch_interval = 1000  
+# ARBITRARY: check for launch every check_launch_interval ms
 
 
 do_every([write_to_imu_data, data_updater, check_launch], [imu_data_interval, accel_sample_interval, check_launch_interval])
@@ -310,7 +283,6 @@ flight_log.write("\nThe rocket has launched")
 flight_log.write("\nTime (ms): " + str(time_queue.peek()))
 uart.write("\n\nLaunch Detected\n")
 uart.write("\nTime (ms): " + str(time_queue.peek()))
-
 
 
 # -----IN FLIGHT PHASE-----
@@ -330,14 +302,12 @@ accel_queue = Queue(max_size, GRAVITY)
 def check_landing():
     if time.ticks_diff(time.ticks_ms(), time_queue.peek()) < 0.5 * check_interval:
         return  # Dont check for landing if there's not enough data in the queue yet
-    uart.write("\n Landing Threshold Proportion: "+str(accel_queue.get_proportion_above_threshold()))
-    if (
-        accel_queue.get_proportion_above_threshold() > 0.95
-    ):  # ARBITRARY: If no more than 5% of the acceleration data is above the gravity threshold, then check variance
-        uart.write("\n Variance of Threshold:"+str(mean_variance(accel_queue)[1]))
-        if (
-            mean_variance(accel_queue)[1] < 0.25
-        ):  # ARBITRARY: If variance is below 0.25 m/s^2, then landing is detected
+    uart.write("\n Landing Threshold Proportion: " + str(accel_queue.get_proportion_above_threshold()))
+    if accel_queue.get_proportion_above_threshold() > 0.95:  
+        # ARBITRARY: If no more than 5% of the acceleration data is above the gravity threshold, then check variance
+        uart.write("\n Variance of Threshold:" + str(mean_variance(accel_queue)[1]))
+        if mean_variance(accel_queue)[1] < 0.25: 
+            # ARBITRARY: If variance is below 0.25 m/s^2, then landing is detected
             raise StopIteration
 
 
@@ -365,8 +335,10 @@ servoStop = 1_500_000
 servoCCW = 1_450_000
 servoCW = 1_550_000
 
+
 def is_not_vertical():  # Checks if rocket is level since servo freaks out otherwise
     return -10 < imu.euler()[1] < 10
+
 
 init_adjust_time = time.ticks_ms()
 
@@ -392,4 +364,3 @@ servo.duty_ns(servoStop)  # Servo is turned off initially
 imu_data.close()
 flight_log.close()
 uart.write("\n\nProgram Terminated")
-
