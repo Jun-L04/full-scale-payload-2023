@@ -3,7 +3,7 @@ import uos
 import time
 from bno055 import *
 from bno055_base import BNO055_BASE
-from queue import *  # do Queue(max_size, threshold) to make object
+from rocket_queue import *  # do Queue(max_size, threshold) to make object
 from math import floor
 # from sys import exit  # only for testing
 
