@@ -1,6 +1,7 @@
 import machine
 import uos
-import imu
+import imu_setup
+import pressure_sensor_setup
 from bno055 import *
 from bno055_base import BNO055_BASE
 from rocket_queue import *  # do Queue(max_size, threshold) to make object
@@ -96,6 +97,7 @@ imu_data_interval = 1 / imu_data_frequency * 1000  # ms
 # Declaring queues. They must be accessible via the global context
 time_queue = None
 accel_queue = None
+altitude_queue = None
 
 
 # Inputs: Interval: How much acceleration data should be kept track of (eg last 2000 ms, interval = 2000)
@@ -107,6 +109,7 @@ def make_data_updater(interval):
         time_queue.enqueue(cur_time)
         accel_data = imu.accel()
         accel_queue.enqueue((accel_data[0] ** 2 + accel_data[1]** 2 + accel_data[2] ** 2) ** 0.5)
+        altitude_queue.enqueue(pressure_sensor.altitude())
         while time.ticks_diff(cur_time, time_queue.peek()) > interval:
             time_queue.dequeue()
             accel_queue.dequeue()
