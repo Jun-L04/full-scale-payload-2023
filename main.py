@@ -1,10 +1,13 @@
 import machine
 import uos
-import time
+import imu
 from bno055 import *
 from bno055_base import BNO055_BASE
 from queue import *  # do Queue(max_size, threshold) to make object
 from math import floor
+import time
+
+
 # from sys import exit  # only for testing
 
 """
@@ -15,16 +18,6 @@ Created for University of Massachusetts Rocket Team (Payload Sub-Team)
 This program collects and stores data from the BNO055 IMU, detects launch and landing, and orients to ground upon landing.
 """
 
-# setup uart object (uart0 maps to pin 1 on the pico)
-uart = machine.UART(0, 9600)
-# initialize the serial connection with given parameters
-uart.init(9600, parity=None, stop=1)
-time.sleep(0.5)
-print("code has been run.")
-uart.write("Initial Transmission\n\n")
-uart.write("\nRocket was connected to power\n")
-uart.write("\nWaiting 3 seconds\n")
-time.sleep(3)
 
 
 # IF YOU ARE IMPLEMENTING DATA TRANSMISSIONS, READ THE BELOW TEXT:
@@ -80,50 +73,6 @@ def do_every(func_arr, interval_arr):
                     return
 
 
-# Initialize IMU
-uart.write("\nInitializing IMU\n")
-i2c = machine.I2C(0, sda=machine.Pin(16), scl=machine.Pin(17))
-imu = BNO055(i2c)
-
-# Assign chip select (CS) pin (and start it high)
-cs = machine.Pin(9, machine.Pin.OUT)
-
-# Intialize SPI peripheral (start with 1 MHz)
-spi = machine.SPI(
-    1,
-    baudrate=10000,
-    polarity=0,
-    phase=0,
-    bits=8,
-    firstbit=machine.SPI.MSB,
-    sck=machine.Pin(10),
-    mosi=machine.Pin(11),
-    miso=machine.Pin(8),
-)
-
-# Initialize SD card
-uart.write("\nIMU initialized. Initializing SD Card\n")
-sd = sdcard.SDCard(spi, cs)
-
-# Mount filesystem
-vfs = uos.VfsFat(sd)
-uos.mount(vfs, "/sd")
-
-# Find a file name so nothing is overridden
-
-
-def get_valid_file_name(path, ext):
-    try:
-        # If uos.stat doesn't have error, then the file exists, use a different name
-        uos.stat(path + "." + ext)
-        # Try same name with a "1" appended to it
-        return get_valid_file_name(path + "1", ext)
-    except OSError:
-        # file does not exist, use this file name
-        return path + "." + ext
-
-
-uart.write("\n SD Card initialized.\n")
 
 
 # NOTE: Need to close this at the end of the program
@@ -134,20 +83,7 @@ imu_data.write(
 flight_log = open(get_valid_file_name("/sd/flight_log", "txt"), "w")
 
 
-def write_to_imu_data():
-    imu_data.write(
-        str(time.ticks_diff(time.ticks_ms(), init_time) / 1000.0)
-        + ","
-        + str(imu.temperature())
-        + ","
-        + "{:5.3f},{:5.3f},{:5.3f},".format(*imu.mag())
-        + "{:5.3f},{:5.3f},{:5.3f},".format(*imu.gyro())
-        + "{:5.3f},{:5.3f},{:5.3f},".format(*imu.accel())
-        + "{:5.3f},{:5.3f},{:5.3f},".format(*imu.lin_acc())
-        + "{:5.3f},{:5.3f},{:5.3f},".format(*imu.gravity())
-        + "{:4.3f},{:4.3f},{:4.3f}".format(*imu.euler())
-        + "\n"
-    )
+
 
     # if time.ticks_diff(time.ticks_ms(), init_time) > 10000:
     # raise StopIteration ONLY USED FOR TESTING PURPOSES
@@ -177,15 +113,6 @@ def make_data_updater(interval):
     return updater
 
 
-# -----CALIBRATION PHASE-----
-def calibration_fn():
-    uart.write("Calibration required: sys {} gyro {} accel {} mag {}".format(*imu.cal_status()))
-    if imu.calibrated():
-        uart.write("\n\nCalibration Done!")
-        flight_log.write("\nCALIBRATED!")
-        # bytearray(b'\xfa\xff\x00\x00\xe9\xffF\x04\x13\x01|\xff\xff\xff\x00\x00\x00\x00\xe8\x03\xec\x01')
-        raise StopIteration
-
 
 # Check for calibration every 1000 ms
 
@@ -197,9 +124,7 @@ do_every([calibration_fn], [1000])
 #offset_arr = bytearray(b"\xfa\xff\x00\x00\xe9\xffF\x04\x13\x01|\xff\xff\xff\x00\x00\x00\x00\xe8\x03\xec\x01")
 #imu.set_offsets(offset_arr)
 
-flight_log.write("\nIMU is calibrated")
-flight_log.write("\nTime (ms): " + str(time.ticks_ms()))
-uart.write("\n\nIMU is calibrated")
+
 
 # -----SETUP PHASE-----
 GRAVITY = 9.8
